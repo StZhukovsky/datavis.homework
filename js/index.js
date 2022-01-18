@@ -46,29 +46,29 @@ const colorScale = d3.scaleOrdinal().range(['#DD4949', '#39CDA1', '#FD710C', '#A
 const radiusScale = d3.scaleSqrt().range([10, 30]);
 
 loadData().then(data => {
-
+    
     colorScale.domain(d3.set(data.map(d=>d.region)).values());
-
+    
     d3.select('#range').on('change', function(){ 
         year = d3.select(this).property('value');
         yearLable.html(year);
-        updateScattePlot();
+        updateScatterPlot();
         updateBar();
     });
 
     d3.select('#radius').on('change', function(){ 
         rParam = d3.select(this).property('value');
-        updateScattePlot();
+        updateScatterPlot();
     });
 
     d3.select('#x').on('change', function(){ 
         xParam = d3.select(this).property('value');
-        updateScattePlot();
+        updateScatterPlot();
     });
 
     d3.select('#y').on('change', function(){ 
         yParam = d3.select(this).property('value');
-        updateScattePlot();
+        updateScatterPlot();
     });
 
     d3.select('#param').on('change', function(){ 
@@ -77,15 +77,33 @@ loadData().then(data => {
     });
 
     function updateBar(){
+        // обновить шкалы по входным параметрам
+        // построить/обновить диаграмму
         return;
     }
 
-    function updateScattePlot(){
-        return;
+    function updateScatterPlot(){
+        const xValues = data.map(d => Number(d[xParam][year])); // массив
+        const xDomain = d3.extent(xValues); // [min, max]
+        x.domain(xDomain); // [min, max] по xParam
+
+        const yValues = data.map(d => Number(d[yParam][year])); // массив
+        const yDomain = d3.extent(yValues); // [min, max]
+        y.domain(yDomain); // [min, max] по yParam
+
+        const selection = scatterPlot.selectAll('circle').data(data);
+
+        const circles = selection.enter()
+                .append('circle'); //создаём элементы
+
+        selection.merge(circles)
+                .attr('r', 50)
+                .attr('cx', d=> x(Number(d[xParam][year])))
+                .attr('cy', d=> y(Number(d[yParam][year])));
     }
 
     updateBar();
-    updateScattePlot();
+    updateScatterPlot();
 });
 
 
