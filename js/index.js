@@ -77,9 +77,26 @@ loadData().then(data => {
     });
 
     function updateBar(){
-        // обновить шкалы по входным параметрам
-        // построить/обновить диаграмму
-        return;
+        const barData = d3.nest()
+            .key(d => d.region)
+            .rollup(leaves => {
+                 return d3.mean(leaves.map(d=> Number(d[param][year])))
+            })
+            .entries(data);    
+        console.log(barData);
+
+        xBar.domain(barData.map(d => d.key));
+        yBar.domain(d3.extent(barData.map(d => d.value)));
+        const selection = barChart.selectAll('rect').data(barData);
+        
+        const bars = selection.enter().append('rect');
+
+        selection.merge(bars)
+            .attr('x', d => xBar(d.key))
+            .attr('y', d => xBar(d.value))
+            .attr('fill', d => colorScale(d.key))
+            .attr('height', d => height - yBar(d.value))
+            .attr('width', 100);
     }
 
     function updateScatterPlot(){
@@ -98,8 +115,9 @@ loadData().then(data => {
 
         selection.merge(circles)
                 .attr('r', 50)
-                .attr('cx', d=> x(Number(d[xParam][year])))
-                .attr('cy', d=> y(Number(d[yParam][year])));
+                .attr('cx', d => x(Number(d[xParam][year])))
+                .attr('cy', d => y(Number(d[yParam][year])))
+                .attr('fill', d => colorScale(d.region));
     }
 
     updateBar();
