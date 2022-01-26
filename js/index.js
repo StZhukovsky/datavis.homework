@@ -76,54 +76,136 @@ loadData().then(data => {
         updateBar();
     });
 
+    d3.select('#p').on('change', function(){
+        lineParam = d3.select(this).property('value');
+        updateLineChart();
+    });
+
     function updateBar(){
-        const barData = d3.nest()
-            .key(d => d.region)
-            .rollup(leaves => {
-                 return d3.mean(leaves.map(d=> Number(d[param][year])))
+        let regions = d3.map(data, function (d) {
+                return d['region'];
+        }).keys();
+        mean = regions.map(
+            region => (
+                d3.mean(data.filter(d => d['region'] == region).flatMap(d => d[param][year]))));
+
+        let meanForRegion = [];
+        regions.forEach((key, i) => {
+            let number = {"region": key, "mean": mean[i]};
+            meanForRegion.push(number);
+        });
+
+        xBar.domain(regions);
+        xBarAxis.call(d3.axisBottom(xBar));
+
+        yBar.domain([0, d3.max(mean)]).range([height, 0]);
+        yBarAxis.call(d3.axisLeft(yBar));
+
+        barChart.selectAll('rect').data(meanForRegion).enter().append('rect')
+            .attr('width', xBar.bandwidth())
+            .attr('height', d => height - yBar(d['mean']))
+            .attr('x', d => xBar(d['region']))
+            .attr('y', d => yBar(d['mean']) - margin)
+            .style("fill", d => colorScale(d['region']));
+
+        barChart.selectAll('rect').data(meanForRegion)
+            .attr('width', xBar.bandwidth())
+            .attr('height', d => height - yBar(d['mean']))
+            .attr('x', d => xBar(d['region']))
+            .attr('y', d => yBar(d['mean']) - margin)
+            .style("fill", d => colorScale(d['region']));
+
+            d3.selectAll('rect').on('click', function (actual, i) {
+            d3.selectAll('rect').style('opacity', 0.5);
+            d3.select(this).style('opacity', 1);
+            d3.selectAll('circle').style('opacity', 0);
+            d3.selectAll('circle').filter(d => d['region'] == actual.region).style('oacity', 0.5);
+
             })
-            .entries(data);    
-        console.log(barData);
-
-        xBar.domain(barData.map(d => d.key));
-        yBar.domain(d3.extent(barData.map(d => d.value)));
-        const selection = barChart.selectAll('rect').data(barData);
-        
-        const bars = selection.enter().append('rect');
-
-        selection.merge(bars)
-            .attr('x', d => xBar(d.key))
-            .attr('y', d => xBar(d.value))
-            .attr('fill', d => colorScale(d.key))
-            .attr('height', d => height - yBar(d.value))
-            .attr('width', 100);
-    }
+            return;  
+        }
 
     function updateScatterPlot(){
-        const xValues = data.map(d => Number(d[xParam][year])); // массив
-        const xDomain = d3.extent(xValues); // [min, max]
-        x.domain(xDomain); // [min, max] по xParam
+        d3.select('.year').text(year)
 
-        const yValues = data.map(d => Number(d[yParam][year])); // массив
-        const yDomain = d3.extent(yValues); // [min, max]
-        y.domain(yDomain); // [min, max] по yParam
+        let xRange = data.map(d => +d[xParam][year]);
+        x.domain([d3.min(xRange), d3.max(xRange)]);
+        xAxis.call(d3.axisBottom(x));
 
-        const selection = scatterPlot.selectAll('circle').data(data);
+        let yRange = data.map(d => +d[yParam][year]);
+        y.domain([d3.min(yRange), d3.max(yRange)]);
+        yAxis.call(d3.axisLeft(y));
 
-        const circles = selection.enter()
-                .append('circle'); //создаём элементы
+        let rRange = data.map(d => +d[rParam][year]);
+        radiusScale.domain([d3.min(rRange), d3.max(rRange)]);
 
-        selection.merge(circles)
-                .attr('r', 50)
-                .attr('cx', d => x(Number(d[xParam][year])))
-                .attr('cy', d => y(Number(d[yParam][year])))
-                .attr('fill', d => colorScale(d.region));
+        scatterPlot.selectAll('circle').data(data).enter().append('circle')
+            .attr("cx", d => x(d[xParam][year]))
+            .attr("cy", d => y(d[yParam][year]))
+            .attr("r", d => radiusScale(d[rParam][year]))
+            .attr("fill", d => colorScale(d['region']));
+
+        scatterPlot.selectAll('circle').data(data)
+            .attr("cx", d => x(d[xParam][year]))
+            .attr("cy", d => y(d[yParam][year]))
+            .attr("r", d => radiusScale(d[rParam][year]))
+            .attr("fill", d => colorScale(d['region']));
+
+    }
+
+    function updateLineChart(){
+        if (selected) {
+            d3.select('.country-name').text(selected);
+
+            let country = data.filter(d => d['country'] == selected).map(d => d[lineParam])[0];
+            let compilation = [];
+            for (let i = 1800; i < 2021; i++)
+                compilation.push({"year": i, "value": parswFloat(country[i])})
+            compilation.splice(221, 5);
+
+            let xRange = d3.range(1800, 2021);
+            x.domain([d3.min(xRange), d3.max(xRange)]);
+            xLineAxis.call(d3.axisBottom(x));
+
+            let yRange = d3.values(country).map(d => +d);
+            y.domain([d3.min(yRange), d3.max(yRange)]);
+            yLineAxis.call(d3.axisLeft(y));
+
+            lineChart.append('path').attr('class', 'line').datum(compilation)
+                .enter()
+                    .append('path');
+            
+            lineChart.selectAll('.line').datum(compilation)
+                .attr("fill", "none")
+                .attr("stroke", "steelblue")
+                .attr("stroke-width", 1.5)
+                .attr("d", d3.line()
+                    .x(d => x(d.year))
+                    .y(d => y(d.value))
+                );
+        }
+
+        return;
+
     }
 
     updateBar();
     updateScatterPlot();
-});
+    updateLineChart();
 
+scatterPlot.selectAll('circle').on('click', function (actual, i) {
+    selected = actual['country'];
+
+    d3.selectAll('circle').attr('stroke-width', 'default');
+
+    this.parentNode.appendChild(this);
+    d3.select(this).attr('stroke-width', 3);
+
+    updateLineChart();
+
+    return;
+});
+});
 
 async function loadData() {
     const data = { 
