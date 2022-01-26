@@ -119,7 +119,7 @@ loadData().then(data => {
             d3.selectAll('rect').style('opacity', 0.5);
             d3.select(this).style('opacity', 1);
             d3.selectAll('circle').style('opacity', 0);
-            d3.selectAll('circle').filter(d => d['region'] == actual.region).style('oacity', 0.5);
+            d3.selectAll('circle').filter(d => d['region'] == actual.region).style('opacity', 0.5);
 
             })
             return;  
@@ -160,7 +160,7 @@ loadData().then(data => {
             let country = data.filter(d => d['country'] == selected).map(d => d[lineParam])[0];
             let compilation = [];
             for (let i = 1800; i < 2021; i++)
-                compilation.push({"year": i, "value": parswFloat(country[i])})
+                compilation.push({"year": i, "value": parseFloat(country[i])})
             compilation.splice(221, 5);
 
             let xRange = d3.range(1800, 2021);
