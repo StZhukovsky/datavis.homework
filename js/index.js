@@ -177,8 +177,8 @@ loadData().then(data => {
             
             lineChart.selectAll('.line').datum(compilation)
                 .attr("fill", "none")
-                .attr("stroke", "steelblue")
-                .attr("stroke-width", 1.5)
+                .attr("stroke", "lightslategrey")
+                .attr("stroke-width", 1)
                 .attr("d", d3.line()
                     .x(d => x(d.year))
                     .y(d => y(d.value))
